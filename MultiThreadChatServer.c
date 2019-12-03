@@ -21,9 +21,8 @@ void *do_chat(void *); //채팅 메세지를 보내는 함수
 int pushClient(int); //새로운 클라이언트가 접속했을 때 클라이언트 정보 추가
 int popClient(int); //클라이언트가 종료했을 때 클라이언트 정보 삭제
 
-//int    list_c[MAX_CLIENT]; //접속한 클라이언트를 관리하는 배열
 struct user list_c[MAX_CLIENT];
-char    greeting[ ] = "WELLCOM! FREAND!! [ /w : 귓속말]\n";
+char    greeting[ ] = "어서오세요!! [ /w : 귓속말]\n";
 char    CODE200[ ] = "[ERORR] : CAN NOT CONNECT MORE CLIENT.\n";
 
 pthread_t thread;
@@ -65,15 +64,15 @@ int main(int argc, char *argv[]){
 		c_socket = accept(s_socket, (struct sockaddr *) &c_addr, &len);
 		res = pushClient(c_socket);
 		
-		if(res < 0) {
+		if(res < 0) { //MAX_CLIENT만큼 이미 클라이언트가 접속해 있다면,
 			write(c_socket, CODE200, strlen(CODE200));
 			close(c_socket);
 		}
 		else {
 			write(c_socket, greeting, strlen(greeting));
-			pthread_mutex_lock(&mutex);
+			//pthread_mutex_lock(&mutex);
 			pthread_create(&thread, NULL, do_chat, (void*)&c_socket);
-			pthread_mutex_unlock(&mutex);
+			//pthread_mutex_unlock(&mutex);
 		}
 	}
 }
@@ -87,6 +86,8 @@ void *do_chat(void *arg){
 	while(1) {
 		memset(chatData, 0, sizeof(chatData));
 		if((n = read(c_socket, chatData, sizeof(chatData))) > 0) {
+		//write chatData to all clients
+
 			chk = strtok(chatData, " ");
 			chk = strtok(NULL, " ");
 			
@@ -117,9 +118,10 @@ void *do_chat(void *arg){
 				break;
 			}
 			else {
+					printf("%s - %d\n", chatData, n);
 			     for(i=0; i<MAX_CLIENT; i++){
-				 if(list_c[i].sock==INVALID_SOCK)	break;
-				 write(list_c[i].sock, chatData, n);
+				 if(list_c[i].sock != INVALID_SOCK)	
+					 write(list_c[i].sock, chatData, n);
 				}
 			}
 		}
@@ -127,6 +129,7 @@ void *do_chat(void *arg){
 }
 
 int pushClient(int c_socket) {
+	//ADD c_socket to list_c array.추가
 	int i, n;
 	char user_name[USERNAME];
 
@@ -148,6 +151,7 @@ int pushClient(int c_socket) {
 int popClient(int c_socket){
 	int i, j;
 	close(c_socket);
+ 	//REMOVE c_socket from list_c array.삭제
 
 	for(i=0; i<MAX_CLIENT; i++){
 		if(list_c[i].sock == c_socket){
